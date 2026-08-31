@@ -997,10 +997,14 @@ async function envoyerMessage(){
   document.getElementById('envoyer-chat').disabled = true;
   const attente = ajouterMessage('L\'assistant cherche l\'information…', 'systeme');
 
-  try{
+try{
+    const { data: { session } } = await supabase.auth.getSession();
     const reponse = await fetch(CHAT_EDGE_FUNCTION_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
       body: JSON.stringify({ message: texte, history: historiqueChat.slice(0,-1) })
     });
     const data = await reponse.json();
