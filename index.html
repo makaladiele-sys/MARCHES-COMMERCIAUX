@@ -991,51 +991,106 @@ champChat.addEventListener('keydown', e => {
 async function envoyerMessage(){
   const texte = champChat.value.trim();
   if(!texte) return;
+
   champChat.value = '';
   ajouterMessage(texte, 'moi');
-  historiqueChat.push({ role:'user', content: texte });
-  document.getElementById('envoyer-chat').disabled = true;
-  const attente = ajouterMessage('L\'assistant cherche l\'information…', 'systeme');
 
-try{
-    const { data: { session } } = await supabase.auth.getSession();
+  // On envoie uniquement les anciens messages à Gemini.
+  // Le message actuel est ajouté séparément par la fonction Edge.
+  historiqueChat.push({ role:'user', content: texte });
+
+  document.getElementById('envoyer-chat').disabled = true;
+
+  const attente = ajouterMessage(
+    "L'assistant cherche l'information…",
+    'systeme'
+  );
+
+  try {
     const reponse = await fetch(CHAT_EDGE_FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.access_token
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ message: texte, history: historiqueChat.slice(0,-1) })
+      body: JSON.stringify({
+        message: texte,
+        history: historiqueChat.slice(0, -1)
+      })
     });
-    const data = await reponse.json();
+
+    let data;
+
+    try {
+      data = await reponse.json();
+    } catch {
+      throw new Error(
+        "La fonction Supabase a renvoyé une réponse qui n'est pas du JSON."
+      );
+    }
+
     attente.remove();
 
+    // Afficher la vraie erreur pour faciliter le diagnostic
     if(!reponse.ok || data.error){
-      ajouterMessage("Je n'ai pas pu joindre l'assistant. Vérifie que la fonction Supabase 'chat-marche' est bien déployée et configurée.", 'lui');
+      console.error("Erreur chat-marche :", data);
+
+      ajouterMessage(
+        "Erreur de l'assistant : " +
+        (data.error || `Erreur HTTP ${reponse.status}`),
+        'lui'
+      );
+
       return;
     }
-    const bulle = ajouterMessage(data.reply || 'Je n\'ai pas trouvé de réponse fiable pour l\'instant.', 'lui');
-    historiqueChat.push({ role:'assistant', content: data.reply || '' });
 
+    const texteReponse =
+      data.reply ||
+      "Je n'ai pas trouvé de réponse fiable pour l'instant.";
+
+    const bulle = ajouterMessage(texteReponse, 'lui');
+
+    historiqueChat.push({
+      role:'assistant',
+      content: texteReponse
+    });
+
+    // Sources Google / Gemini
     if(data.sources && data.sources.length){
       const wrap = document.createElement('div');
       wrap.className = 'msg-sources';
+
       data.sources.slice(0,4).forEach(s => {
         const a = document.createElement('a');
-        a.href = s.url; a.target = '_blank'; a.rel = 'noopener';
-        a.textContent = '🔗 ' + (s.title || s.url);
+
+        a.href = s.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+
+        a.textContent =
+          '🔗 ' + (s.title || s.url);
+
         wrap.appendChild(a);
       });
+
       bulle.appendChild(wrap);
     }
-  } catch(err){
+
+  } catch(err) {
+
     attente.remove();
-    ajouterMessage("Erreur de connexion à l'assistant.", 'lui');
+
+    console.error("Erreur de connexion chat-marche :", err);
+
+    ajouterMessage(
+      "Impossible de contacter l'assistant. " +
+      (err.message || "Erreur inconnue."),
+      'lui'
+    );
+
   } finally {
     document.getElementById('envoyer-chat').disabled = false;
   }
 }
-
 // ---------- Démarrage ----------
 verifierAdmin();
 chargerDonnees();
