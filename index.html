@@ -1,1040 +1,341 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marché Sénégal — Indicateurs Agricoles en direct</title>
-<meta name="description" content="Suivi des prix et tendances du marché sénégalais des produits agricoles, avec assistant intelligent.">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
-  :root{
-    /* ---- Couleurs : nuit indigo + or du mil + argile cuite ---- */
-    --indigo-nuit:     #121A2E;
-    --indigo-panel:    #1B2740;
-    --indigo-panel-2:  #24304F;
-    --indigo-ligne:    #2E3B5C;
-    --or-mil:          #E7A934;
-    --or-mil-doux:     #F2C868;
-    --argile:          #C1552F;
-    --argile-doux:     #D97A52;
-    --vert-recolte:    #45B26B;
-    --rouge-alerte:    #E15252;
-    --sable:           #F3EEE0;
-    --sable-mute:      #A7AFC6;
-    --sable-faible:    #6C7591;
-
-    --police-affiche: 'Bricolage Grotesque', system-ui, sans-serif;
-    --police-corps:   'IBM Plex Sans', system-ui, sans-serif;
-    --police-donnee:  'IBM Plex Mono', ui-monospace, monospace;
-
-    --rayon: 14px;
-    --ombre: 0 12px 32px -12px rgba(0,0,0,0.55);
-  }
-
-  *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
-  body{
-    margin:0;
-    background:var(--indigo-nuit);
-    color:var(--sable);
-    font-family:var(--police-corps);
-    -webkit-font-smoothing:antialiased;
-    min-height:100vh;
-  }
-  ::selection{ background:var(--or-mil); color:var(--indigo-nuit); }
-
-  a{ color:var(--or-mil-doux); }
-
-  /* ---------- Motif signature : losanges "wax" or / argile ---------- */
-  .motif{
-    background-image:
-      conic-gradient(from 45deg, var(--or-mil) 90deg, transparent 90deg 180deg, var(--argile) 180deg 270deg, transparent 270deg 360deg);
-    background-size: 22px 22px;
-  }
-  .motif-fine{ height:10px; opacity:0.9; }
-  .motif-fond{ opacity:0.06; }
-
-  /* ---------- Ticker (bandeau défilant) ---------- */
-  .ticker-wrap{
-    position:relative;
-    background:#0D1322;
-    border-bottom:1px solid var(--indigo-ligne);
-    overflow:hidden;
-    white-space:nowrap;
-    padding:9px 0;
-  }
-  .ticker-wrap::before{
-    content:"";
-    position:absolute; inset:0;
-    background-image: conic-gradient(from 45deg, var(--or-mil) 90deg, transparent 90deg 180deg, var(--argile) 180deg 270deg, transparent 270deg 360deg);
-    background-size:22px 22px;
-    opacity:0.05;
-    pointer-events:none;
-  }
-  .ticker-track{
-    display:inline-flex;
-    align-items:center;
-    gap:36px;
-    animation: defiler 38s linear infinite;
-    padding-left:100%;
-  }
-  .ticker-wrap:hover .ticker-track{ animation-play-state:paused; }
-  @keyframes defiler{
-    from{ transform:translateX(0); }
-    to{ transform:translateX(-100%); }
-  }
-  .ticker-item{
-    font-family:var(--police-donnee);
-    font-size:13px;
-    letter-spacing:0.02em;
-    color:var(--sable-mute);
-  }
-  .ticker-item b{ color:var(--sable); font-weight:600; margin-right:6px; }
-  .ticker-item.up{ color:var(--vert-recolte); }
-  .ticker-item.down{ color:var(--rouge-alerte); }
-
-  /* ---------- En-tête ---------- */
-  header.top{
-    max-width:1180px;
-    margin:0 auto;
-    padding:44px 24px 28px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:24px;
-    justify-content:space-between;
-    align-items:flex-end;
-  }
-  .eyebrow{
-    font-family:var(--police-donnee);
-    font-size:12px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:var(--or-mil-doux);
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-bottom:10px;
-  }
-  .eyebrow .point{
-    width:7px; height:7px; border-radius:50%;
-    background:var(--vert-recolte);
-    box-shadow:0 0 0 0 rgba(69,178,107,.6);
-    animation:pulse 2.2s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(69,178,107,.55); }
-    70%{ box-shadow:0 0 0 8px rgba(69,178,107,0); }
-    100%{ box-shadow:0 0 0 0 rgba(69,178,107,0); }
-  }
-  h1{
-    font-family:var(--police-affiche);
-    font-weight:700;
-    font-size:clamp(30px, 4.4vw, 48px);
-    line-height:1.04;
-    margin:0 0 8px;
-    letter-spacing:-0.01em;
-  }
-  h1 span{ color:var(--or-mil); }
-  .sous-titre{
-    color:var(--sable-mute);
-    font-size:16px;
-    max-width:52ch;
-    margin:0;
-  }
-  .horloge{
-    font-family:var(--police-donnee);
-    font-size:13px;
-    color:var(--sable-mute);
-    text-align:right;
-    white-space:nowrap;
-  }
-  .horloge b{ color:var(--sable); display:block; font-size:15px; margin-bottom:2px; }
-
-  .diviseur{ max-width:1180px; margin:0 auto; padding:0 24px; }
-
-  /* ---------- Barre de contrôle ---------- */
-  .controles{
-    max-width:1180px;
-    margin:0 auto;
-    padding:22px 24px 0;
-    display:flex;
-    flex-wrap:wrap;
-    gap:14px;
-    align-items:center;
-    justify-content:space-between;
-  }
-  .pilules{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-  }
-  .pilule{
-    font-family:var(--police-corps);
-    font-size:13.5px;
-    font-weight:500;
-    color:var(--sable-mute);
-    background:var(--indigo-panel);
-    border:1px solid var(--indigo-ligne);
-    padding:8px 14px;
-    border-radius:100px;
-    cursor:pointer;
-    transition:all .15s ease;
-    white-space:nowrap;
-  }
-  .pilule:hover{ color:var(--sable); border-color:var(--sable-faible); }
-  .pilule.actif{
-    background:var(--or-mil);
-    border-color:var(--or-mil);
-    color:#241705;
-    font-weight:600;
-  }
-  .droite-controles{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-  select, input[type=text]{
-    font-family:var(--police-corps);
-    background:var(--indigo-panel);
-    border:1px solid var(--indigo-ligne);
-    color:var(--sable);
-    padding:9px 12px;
-    border-radius:10px;
-    font-size:13.5px;
-  }
-  input[type=text]{ min-width:180px; }
-  select:focus, input:focus{ outline:2px solid var(--or-mil); outline-offset:1px; }
-
-  .bouton{
-    font-family:var(--police-corps);
-    font-weight:600;
-    font-size:13.5px;
-    border-radius:10px;
-    padding:9px 16px;
-    cursor:pointer;
-    border:1px solid transparent;
-    transition:transform .1s ease, opacity .15s ease;
-  }
-  .bouton:active{ transform:scale(0.97); }
-  .bouton.or{ background:var(--or-mil); color:#241705; }
-  .bouton.or:hover{ background:var(--or-mil-doux); }
-  .bouton.fantome{ background:transparent; border-color:var(--indigo-ligne); color:var(--sable-mute); }
-  .bouton.fantome:hover{ color:var(--sable); border-color:var(--sable-faible); }
-  .bouton.danger{ background:transparent; border-color:var(--rouge-alerte); color:var(--rouge-alerte); }
-
-  /* ---------- Grille de cartes ---------- */
-  main{
-    max-width:1180px;
-    margin:0 auto;
-    padding:22px 24px 90px;
-  }
-  #compteur{
-    color:var(--sable-faible);
-    font-size:13px;
-    margin:14px 2px 16px;
-    font-family:var(--police-donnee);
-  }
-  .grille{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(250px,1fr));
-    gap:14px;
-  }
-  .carte{
-    background:var(--indigo-panel);
-    border:1px solid var(--indigo-ligne);
-    border-radius:var(--rayon);
-    padding:18px;
-    position:relative;
-    transition:border-color .15s ease, transform .15s ease;
-  }
-  .carte:hover{ border-color:var(--sable-faible); transform:translateY(-2px); }
-  .carte-tete{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:10px;
-    margin-bottom:12px;
-  }
-  .carte-cat{ font-size:12px; color:var(--sable-faible); }
-  .carte-nom{
-    font-family:var(--police-affiche);
-    font-weight:600;
-    font-size:19px;
-    margin:2px 0 0;
-  }
-  .badge-var{
-    font-family:var(--police-donnee);
-    font-size:13px;
-    font-weight:600;
-    padding:4px 9px;
-    border-radius:8px;
-    white-space:nowrap;
-  }
-  .badge-var.up{ color:var(--vert-recolte); background:rgba(69,178,107,0.12); }
-  .badge-var.down{ color:var(--rouge-alerte); background:rgba(225,82,82,0.12); }
-  .badge-var.stable{ color:var(--sable-mute); background:rgba(167,175,198,0.1); }
-
-  .carte-prix{
-    display:flex;
-    align-items:baseline;
-    gap:6px;
-    margin:6px 0 4px;
-  }
-  .carte-prix .valeur{
-    font-family:var(--police-donnee);
-    font-size:28px;
-    font-weight:600;
-    color:var(--sable);
-    font-variant-numeric:tabular-nums;
-  }
-  .carte-prix .unite{ color:var(--sable-faible); font-size:13px; }
-
-  .carte-spark{ margin:10px 0 12px; height:36px; }
-  .carte-bas{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    font-size:12px;
-    color:var(--sable-faible);
-    border-top:1px dashed var(--indigo-ligne);
-    padding-top:10px;
-  }
-  .carte-admin-actions{
-    display:none;
-    gap:6px;
-    margin-top:10px;
-  }
-  body.admin .carte-admin-actions{ display:flex; }
-  .lien-mini{
-    font-size:12px;
-    background:none;
-    border:1px solid var(--indigo-ligne);
-    color:var(--sable-mute);
-    border-radius:7px;
-    padding:5px 9px;
-    cursor:pointer;
-  }
-  .lien-mini:hover{ color:var(--sable); border-color:var(--sable-faible); }
-
-  .vide{
-    text-align:center;
-    padding:70px 20px;
-    color:var(--sable-faible);
-  }
-  .vide h3{ font-family:var(--police-affiche); color:var(--sable); font-size:22px; margin-bottom:6px;}
-
-  /* ---------- Bulle & panneau chat ---------- */
-  #bulle-chat{
-    position:fixed;
-    bottom:24px; right:24px;
-    width:60px; height:60px;
-    border-radius:50%;
-    background:var(--argile);
-    color:var(--sable);
-    border:none;
-    box-shadow:var(--ombre);
-    cursor:pointer;
-    font-size:24px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:40;
-    transition:transform .15s ease, background .15s ease;
-  }
-  #bulle-chat:hover{ background:var(--argile-doux); transform:scale(1.05); }
-
-  #panneau-chat{
-    position:fixed;
-    bottom:0; right:0;
-    width:400px;
-    max-width:100vw;
-    height:100vh;
-    background:var(--indigo-panel);
-    border-left:1px solid var(--indigo-ligne);
-    box-shadow:-16px 0 40px -20px rgba(0,0,0,0.6);
-    z-index:50;
-    display:flex;
-    flex-direction:column;
-    transform:translateX(100%);
-    transition:transform .28s ease;
-  }
-  #panneau-chat.ouvert{ transform:translateX(0); }
-  .chat-entete{
-    padding:18px 18px 14px;
-    border-bottom:1px solid var(--indigo-ligne);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  }
-  .chat-entete-titre{ display:flex; flex-direction:column; }
-  .chat-entete-titre b{ font-family:var(--police-affiche); font-size:17px; }
-  .chat-entete-titre span{ font-size:12px; color:var(--sable-faible); }
-  #fermer-chat{
-    background:none; border:none; color:var(--sable-faible);
-    font-size:22px; cursor:pointer; line-height:1;
-  }
-  #fermer-chat:hover{ color:var(--sable); }
-
-  .chat-corps{
-    flex:1;
-    overflow-y:auto;
-    padding:18px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-  }
-  .msg{
-    max-width:88%;
-    padding:11px 14px;
-    border-radius:14px;
-    font-size:14px;
-    line-height:1.5;
-    white-space:pre-wrap;
-  }
-  .msg.moi{
-    align-self:flex-end;
-    background:var(--or-mil);
-    color:#241705;
-    border-bottom-right-radius:4px;
-  }
-  .msg.lui{
-    align-self:flex-start;
-    background:var(--indigo-panel-2);
-    border:1px solid var(--indigo-ligne);
-    border-bottom-left-radius:4px;
-  }
-  .msg.systeme{
-    align-self:center;
-    color:var(--sable-faible);
-    font-size:12.5px;
-    text-align:center;
-  }
-  .msg-sources{
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    margin-top:8px;
-    padding-top:8px;
-    border-top:1px dashed var(--indigo-ligne);
-  }
-  .msg-sources a{ font-size:11.5px; color:var(--or-mil-doux); text-decoration:none; }
-  .msg-sources a:hover{ text-decoration:underline; }
-
-  .suggestions{
-    display:flex; flex-wrap:wrap; gap:6px; padding:0 18px 12px;
-  }
-  .suggestion{
-    font-size:12px; background:var(--indigo-panel-2); border:1px solid var(--indigo-ligne);
-    color:var(--sable-mute); border-radius:100px; padding:6px 11px; cursor:pointer;
-  }
-  .suggestion:hover{ color:var(--sable); border-color:var(--sable-faible); }
-
-  .chat-pied{
-    padding:14px;
-    border-top:1px solid var(--indigo-ligne);
-    display:flex;
-    gap:8px;
-  }
-  #champ-chat{
-    flex:1;
-    background:var(--indigo-nuit);
-    border:1px solid var(--indigo-ligne);
-    color:var(--sable);
-    border-radius:10px;
-    padding:11px 13px;
-    font-family:var(--police-corps);
-    font-size:14px;
-    resize:none;
-  }
-  #champ-chat:focus{ outline:2px solid var(--or-mil); }
-  #envoyer-chat{
-    background:var(--or-mil); color:#241705; border:none;
-    border-radius:10px; width:44px; cursor:pointer; font-size:17px;
-  }
-  #envoyer-chat:disabled{ opacity:0.5; cursor:default; }
-
-  /* ---------- Modales ---------- */
-  .fond-modale{
-    position:fixed; inset:0; background:rgba(9,13,24,0.72);
-    display:none; align-items:center; justify-content:center;
-    z-index:60; padding:20px;
-  }
-  .fond-modale.ouvert{ display:flex; }
-  .modale{
-    background:var(--indigo-panel);
-    border:1px solid var(--indigo-ligne);
-    border-radius:16px;
-    padding:26px;
-    width:100%; max-width:420px;
-    box-shadow:var(--ombre);
-  }
-  .modale h2{ font-family:var(--police-affiche); font-size:21px; margin:0 0 4px; }
-  .modale p.aide{ color:var(--sable-faible); font-size:13px; margin:0 0 18px; }
-  .champ{ margin-bottom:13px; display:flex; flex-direction:column; gap:6px; }
-  .champ label{ font-size:12.5px; color:var(--sable-mute); }
-  .champ input, .champ select{ width:100%; }
-  .modale-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
-  .erreur-modale{ color:var(--rouge-alerte); font-size:12.5px; min-height:16px; margin-top:4px; }
-
-  footer{
-    max-width:1180px; margin:0 auto; padding:26px 24px 60px;
-    color:var(--sable-faible); font-size:12.5px;
-    border-top:1px solid var(--indigo-ligne);
-  }
-
-  @media (max-width:640px){
-    #panneau-chat{ width:100vw; }
-    header.top{ padding:32px 18px 22px; }
-    .controles, main, footer{ padding-left:18px; padding-right:18px; }
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .ticker-track{ animation:none; }
-    .eyebrow .point{ animation:none; }
-    *{ transition:none !important; }
-  }
-</style>
-</head>
-<body>
-
-<!-- TICKER -->
-<div class="ticker-wrap" aria-hidden="true">
-  <div class="ticker-track" id="ticker-track">
-    <span class="ticker-item">Chargement du marché…</span>
-  </div>
-</div>
-
-<!-- EN-TÊTE -->
-<header class="top">
-  <div>
-    <div class="eyebrow"><span class="point"></span> LOUMA EN DIRECT — Sénégal</div>
-    <h1>Indicateurs du <span>marché agricole</span> sénégalais</h1>
-    <p class="sous-titre">Prix, tendances et volumes des produits les plus vendus — mis à jour par le terrain, éclairés par l'IA.</p>
-  </div>
-  <div class="horloge">
-    <b id="horloge-heure">--:--</b>
-    <span id="horloge-date">—</span>
-  </div>
-</header>
-
-<div class="diviseur"><div class="motif motif-fine" style="border-radius:6px;"></div></div>
-
-<!-- CONTRÔLES -->
-<div class="controles">
-  <div class="pilules" id="pilules-categories">
-    <button class="pilule actif" data-cat="toutes">Toutes</button>
-  </div>
-  <div class="droite-controles">
-    <input type="text" id="recherche" placeholder="Chercher un produit…">
-    <select id="tri">
-      <option value="nom">Nom (A→Z)</option>
-      <option value="hausse">Plus fortes hausses</option>
-      <option value="baisse">Plus fortes baisses</option>
-      <option value="prix">Prix (décroissant)</option>
-    </select>
-    <button class="bouton fantome" id="bouton-connexion">Connexion</button>
-    <button class="bouton or" id="bouton-ajouter" style="display:none;">+ Produit</button>
-  </div>
-</div>
-
-<main>
-  <div id="compteur"></div>
-  <div class="grille" id="grille-cartes"></div>
-  <div class="vide" id="etat-vide" style="display:none;">
-    <h3>Aucun produit à afficher</h3>
-    <p>Essaie une autre catégorie ou vide la recherche.</p>
-  </div>
-</main>
-
-<footer>
-  Marché Sénégal — Dashboard d'indicateurs agricoles. Les prix affichés proviennent des sources indiquées sur chaque fiche (saisie terrain, rapports SIM, etc.) et ne remplacent pas une vérification directe au marché. L'assistant répond à partir de ses connaissances générales, sans recherche web en direct — vérifie toujours les informations sensibles auprès d'une source officielle.
-</footer>
-
-<!-- BULLE + PANNEAU CHAT -->
-<button id="bulle-chat" title="Ouvrir l'assistant marché" aria-label="Ouvrir l'assistant marché">💬</button>
-<div id="panneau-chat" aria-hidden="true">
-  <div class="chat-entete">
-    <div class="chat-entete-titre">
-      <b>Assistant Marché</b>
-      <span>Questions libres, réponses sourcées</span>
-    </div>
-    <button id="fermer-chat" aria-label="Fermer">×</button>
-  </div>
-  <div class="chat-corps" id="chat-corps">
-    <div class="msg lui">Bonjour 👋 Pose-moi une question sur un produit, un marché ou une tendance — par exemple le prix de l'oignon à Dakar cette semaine.</div>
-  </div>
-  <div class="suggestions" id="suggestions-chat">
-    <button class="suggestion">Tendance du mil ce mois-ci</button>
-    <button class="suggestion">Prix de l'oignon à Dakar</button>
-    <button class="suggestion">Pourquoi le poulet est cher ?</button>
-  </div>
-  <div class="chat-pied">
-    <textarea id="champ-chat" rows="1" placeholder="Écris ta question…"></textarea>
-    <button id="envoyer-chat" aria-label="Envoyer">➤</button>
-  </div>
-</div>
-
-<!-- MODALE CONNEXION -->
-<div class="fond-modale" id="modale-connexion">
-  <div class="modale">
-    <h2>Connexion admin</h2>
-    <p class="aide">Réservé à la mise à jour des indicateurs.</p>
-    <div class="champ">
-      <label for="email-connexion">E-mail</label>
-      <input type="text" id="email-connexion" autocomplete="username">
-    </div>
-    <div class="champ">
-      <label for="mdp-connexion">Mot de passe</label>
-      <input type="text" id="mdp-connexion" autocomplete="current-password" style="-webkit-text-security:disc;">
-    </div>
-    <div class="erreur-modale" id="erreur-connexion"></div>
-    <div class="modale-actions">
-      <button class="bouton fantome" id="annuler-connexion">Annuler</button>
-      <button class="bouton or" id="valider-connexion">Se connecter</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODALE PRODUIT (ajout / édition) -->
-<div class="fond-modale" id="modale-produit">
-  <div class="modale">
-    <h2 id="titre-modale-produit">Ajouter un produit</h2>
-    <p class="aide">Renseigne le prix actuel — l'ancien prix devient automatiquement la référence de variation.</p>
-    <input type="hidden" id="produit-id">
-    <div class="champ">
-      <label for="produit-nom">Nom du produit</label>
-      <input type="text" id="produit-nom" placeholder="Ex : Oignon">
-    </div>
-    <div class="champ">
-      <label for="produit-categorie">Catégorie</label>
-      <select id="produit-categorie"></select>
-    </div>
-    <div class="champ">
-      <label for="produit-unite">Unité</label>
-      <input type="text" id="produit-unite" placeholder="kg, sac 50kg, alvéole de 30…">
-    </div>
-    <div class="champ">
-      <label for="produit-prix">Prix actuel (FCFA)</label>
-      <input type="text" id="produit-prix" inputmode="decimal" placeholder="Ex : 350">
-    </div>
-    <div class="champ">
-      <label for="produit-marche">Marché de référence</label>
-      <input type="text" id="produit-marche" placeholder="Ex : Marché Tilène, Dakar">
-    </div>
-    <div class="champ">
-      <label for="produit-source">Source</label>
-      <input type="text" id="produit-source" placeholder="Ex : Relevé terrain, SIM-CSAR…">
-    </div>
-    <div class="erreur-modale" id="erreur-produit"></div>
-    <div class="modale-actions">
-      <button class="bouton danger" id="supprimer-produit" style="display:none;">Supprimer</button>
-      <button class="bouton fantome" id="annuler-produit">Annuler</button>
-      <button class="bouton or" id="valider-produit">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
 // ============================================================
-// CONFIGURATION — à remplacer avant mise en ligne
-// ============================================================
-const SUPABASE_URL = 'https://viughoyxwjzqclkgeche.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpdWdob3l4d2p6cWNsa2dlY2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3NTMsImV4cCI6MjEwMzc0ODc1M30.nFY1SA2bVuoBcuQC-aHs0eUw81EQEVepNcdFeGvQkFU';
-const CHAT_EDGE_FUNCTION_URL = 'https://viughoyxwjzqclkgeche.supabase.co/functions/v1/chat-marche';
+// chat-marche — Supabase Edge Function
+// Combine l'API Gemini (Google, gratuit) pour la conversation
+// et FreeNewsApi.io (gratuit, 5000 requêtes/jour) pour des
+// actualités récentes en complément — sans compte de facturation.
 // ============================================================
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const FREENEWSAPI_BASE = "https://api.freenewsapi.io/v1";
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
-let categories = [];
-let indicateurs = [];
-let historiqueParProduit = {};
-let session = null;
-let filtreCategorie = 'toutes';
-let tri = 'nom';
-let recherche = '';
-
-// ---------- Horloge ----------
-function majHorloge(){
-  const maintenant = new Date();
-  const heure = maintenant.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', timeZone:'Africa/Dakar' });
-  const date = maintenant.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', timeZone:'Africa/Dakar' });
-  document.getElementById('horloge-heure').textContent = heure + ' (Dakar)';
-  document.getElementById('horloge-date').textContent = date;
-}
-majHorloge();
-setInterval(majHorloge, 30000);
-
-// ---------- Chargement des données ----------
-async function chargerDonnees(){
-  const [{ data: cats }, { data: ind }, { data: hist }] = await Promise.all([
-    supabase.from('categories').select('*').order('ordre'),
-    supabase.from('v_indicateurs').select('*'),
-    supabase.from('historique_prix').select('produit_id, prix, releve_le').order('releve_le', { ascending:true })
-  ]);
-
-  categories = cats || [];
-  indicateurs = ind || [];
-
-  historiqueParProduit = {};
-  (hist || []).forEach(h => {
-    if(!historiqueParProduit[h.produit_id]) historiqueParProduit[h.produit_id] = [];
-    historiqueParProduit[h.produit_id].push(h.prix);
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
-
-  construirePilules();
-  remplirSelectCategories();
-  renderTicker();
-  renderCartes();
 }
 
-function construirePilules(){
-  const conteneur = document.getElementById('pilules-categories');
-  conteneur.innerHTML = '<button class="pilule actif" data-cat="toutes">Toutes</button>';
-  categories.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = 'pilule';
-    btn.dataset.cat = c.id;
-    btn.textContent = `${c.icone} ${c.nom}`;
-    conteneur.appendChild(btn);
-  });
-  conteneur.querySelectorAll('.pilule').forEach(btn => {
-    btn.addEventListener('click', () => {
-      conteneur.querySelectorAll('.pilule').forEach(b => b.classList.remove('actif'));
-      btn.classList.add('actif');
-      filtreCategorie = btn.dataset.cat;
-      renderCartes();
+interface MessageHistoire {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface GeminiPart {
+  text?: string;
+}
+
+interface GeminiContent {
+  role: "user" | "model";
+  parts: GeminiPart[];
+}
+
+interface Indicateur {
+  produit: string;
+  categorie_nom?: string;
+  prix_actuel: number;
+  variation_pct: number;
+  unite: string;
+  marche: string;
+  date_maj?: string;
+}
+
+async function recupererIndicateurs(): Promise<Indicateur[]> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const cle = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !cle) {
+    console.error("SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY manquant.");
+    return [];
+  }
+
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/v_indicateurs?select=produit,categorie_nom,prix_actuel,variation_pct,unite,marche,date_maj&order=produit.asc`,
+      {
+        headers: {
+          apikey: cle,
+          Authorization: `Bearer ${cle}`,
+        },
+      },
+    );
+    if (!res.ok) {
+      console.error("Erreur lecture v_indicateurs:", res.status, await res.text());
+      return [];
+    }
+    return (await res.json()) as Indicateur[];
+  } catch (err) {
+    console.error("Erreur réseau v_indicateurs:", err);
+    return [];
+  }
+}
+
+function formaterIndicateurs(indicateurs: Indicateur[]): string {
+  if (!indicateurs.length) {
+    return "Aucun produit n'est actuellement enregistré dans le tableau de bord.";
+  }
+  return indicateurs
+    .map((i) => {
+      const variation = i.variation_pct > 0
+        ? `+${i.variation_pct}%`
+        : `${i.variation_pct}%`;
+      const date = i.date_maj
+        ? new Date(i.date_maj).toLocaleDateString("fr-FR")
+        : "";
+      return `- ${i.produit} (${i.categorie_nom ?? "catégorie inconnue"}) : ${i.prix_actuel} FCFA/${i.unite}, variation ${variation}, marché : ${i.marche}${date ? ", mis à jour le " + date : ""}`;
+    })
+    .join("\n");
+}
+
+// ---------- FreeNewsApi : actualités récentes ----------
+
+interface ArticleResume {
+  uuid: string;
+  title: string;
+}
+
+interface ArticleDetail {
+  uuid: string;
+  title: string;
+  publisher?: string;
+  original_url?: string;
+  body?: string;
+  published_at?: string;
+}
+
+async function rechercherArticles(
+  apiKey: string,
+  q: string,
+  language: string | null,
+  country: string | null,
+): Promise<ArticleResume[]> {
+  const params = new URLSearchParams({ q, order_by: "archive", page_size: "4" });
+  if (language) params.set("language", language);
+  if (country) params.set("country", country);
+
+  try {
+    const res = await fetch(`${FREENEWSAPI_BASE}/news?${params.toString()}`, {
+      headers: { "x-api-key": apiKey },
     });
-  });
-}
-
-function remplirSelectCategories(){
-  const sel = document.getElementById('produit-categorie');
-  sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.icone} ${c.nom}</option>`).join('');
-}
-
-// ---------- Ticker ----------
-function renderTicker(){
-  const track = document.getElementById('ticker-track');
-  if(!indicateurs.length){
-    track.innerHTML = '<span class="ticker-item">Aucun indicateur pour le moment — connecte-toi en admin pour en ajouter.</span>';
-    return;
-  }
-  const items = indicateurs.map(i => {
-    const sens = i.variation_pct > 0 ? 'up' : i.variation_pct < 0 ? 'down' : '';
-    const fleche = i.variation_pct > 0 ? '▲' : i.variation_pct < 0 ? '▼' : '—';
-    return `<span class="ticker-item ${sens}"><b>${i.produit}</b>${formatPrix(i.prix_actuel)} FCFA/${i.unite} ${fleche} ${Math.abs(i.variation_pct)}%</span>`;
-  });
-  track.innerHTML = items.concat(items).join(''); // doublé pour un défilement continu
-}
-
-// ---------- Cartes ----------
-function formatPrix(n){
-  return new Intl.NumberFormat('fr-FR').format(n);
-}
-
-function dessinerSparkline(canvas, valeurs){
-  if(!valeurs || valeurs.length < 2){
-    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-    return;
-  }
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-  const min = Math.min(...valeurs), max = Math.max(...valeurs);
-  const marge = 4;
-  const pas = (w - marge*2) / (valeurs.length - 1);
-  const y = v => h - marge - ((v - min) / ((max - min) || 1)) * (h - marge*2);
-
-  const monte = valeurs[valeurs.length-1] >= valeurs[0];
-  ctx.strokeStyle = monte ? '#45B26B' : '#E15252';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  valeurs.forEach((v,i) => {
-    const x = marge + i*pas;
-    if(i===0) ctx.moveTo(x, y(v)); else ctx.lineTo(x, y(v));
-  });
-  ctx.stroke();
-
-  // point final
-  ctx.fillStyle = ctx.strokeStyle;
-  ctx.beginPath();
-  ctx.arc(marge + (valeurs.length-1)*pas, y(valeurs[valeurs.length-1]), 2.6, 0, Math.PI*2);
-  ctx.fill();
-}
-
-function renderCartes(){
-  let liste = indicateurs.filter(i => filtreCategorie === 'toutes' || i.categorie_id === filtreCategorie);
-  if(recherche.trim()){
-    const q = recherche.trim().toLowerCase();
-    liste = liste.filter(i => i.produit.toLowerCase().includes(q));
-  }
-  liste = [...liste].sort((a,b) => {
-    if(tri === 'hausse') return b.variation_pct - a.variation_pct;
-    if(tri === 'baisse') return a.variation_pct - b.variation_pct;
-    if(tri === 'prix') return b.prix_actuel - a.prix_actuel;
-    return a.produit.localeCompare(b.produit, 'fr');
-  });
-
-  document.getElementById('compteur').textContent = `${liste.length} produit${liste.length>1?'s':''} suivi${liste.length>1?'s':''}`;
-
-  const grille = document.getElementById('grille-cartes');
-  const vide = document.getElementById('etat-vide');
-  grille.innerHTML = '';
-
-  if(!liste.length){
-    vide.style.display = 'block';
-    return;
-  }
-  vide.style.display = 'none';
-
-  liste.forEach(i => {
-    const sens = i.variation_pct > 0 ? 'up' : i.variation_pct < 0 ? 'down' : 'stable';
-    const fleche = i.variation_pct > 0 ? '▲' : i.variation_pct < 0 ? '▼' : '—';
-    const carte = document.createElement('article');
-    carte.className = 'carte';
-    carte.innerHTML = `
-      <div class="carte-tete">
-        <div>
-          <div class="carte-cat">${i.categorie_icone} ${i.categorie_nom}</div>
-          <h3 class="carte-nom">${i.produit}</h3>
-        </div>
-        <span class="badge-var ${sens}">${fleche} ${Math.abs(i.variation_pct)}%</span>
-      </div>
-      <div class="carte-prix">
-        <span class="valeur">${formatPrix(i.prix_actuel)}</span>
-        <span class="unite">FCFA / ${i.unite}</span>
-      </div>
-      <div class="carte-spark"><canvas width="230" height="36"></canvas></div>
-      <div class="carte-bas">
-        <span>${i.marche}</span>
-        <span>${new Date(i.date_maj).toLocaleDateString('fr-FR')}</span>
-      </div>
-      <div class="carte-admin-actions">
-        <button class="lien-mini" data-action="editer" data-id="${i.produit_id}">Modifier</button>
-      </div>
-    `;
-    grille.appendChild(carte);
-    dessinerSparkline(carte.querySelector('canvas'), historiqueParProduit[i.produit_id]);
-    carte.querySelector('[data-action="editer"]').addEventListener('click', () => ouvrirModaleProduit(i));
-  });
-}
-
-document.getElementById('recherche').addEventListener('input', e => { recherche = e.target.value; renderCartes(); });
-document.getElementById('tri').addEventListener('change', e => { tri = e.target.value; renderCartes(); });
-
-// ---------- Synchronisation en temps réel (Supabase Realtime) ----------
-supabase
-  .channel('indicateurs-en-direct')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'indicateurs' }, () => chargerDonnees())
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'produits' }, () => chargerDonnees())
-  .subscribe();
-
-// ============================================================
-// ADMIN — connexion, ajout, édition, suppression
-// ============================================================
-const modaleConnexion = document.getElementById('modale-connexion');
-const modaleProduit = document.getElementById('modale-produit');
-
-document.getElementById('bouton-connexion').addEventListener('click', () => {
-  if(session){
-    supabase.auth.signOut();
-    return;
-  }
-  document.getElementById('erreur-connexion').textContent = '';
-  modaleConnexion.classList.add('ouvert');
-});
-document.getElementById('annuler-connexion').addEventListener('click', () => modaleConnexion.classList.remove('ouvert'));
-
-document.getElementById('valider-connexion').addEventListener('click', async () => {
-  const email = document.getElementById('email-connexion').value.trim();
-  const mdp = document.getElementById('mdp-connexion').value;
-  const erreurEl = document.getElementById('erreur-connexion');
-  erreurEl.textContent = '';
-  if(!email || !mdp){ erreurEl.textContent = 'Renseigne e-mail et mot de passe.'; return; }
-  const { error } = await supabase.auth.signInWithPassword({ email, password: mdp });
-  if(error){ erreurEl.textContent = "Connexion refusée : " + error.message; return; }
-  modaleConnexion.classList.remove('ouvert');
-});
-
-async function verifierAdmin(){
-  const { data: { session: s } } = await supabase.auth.getSession();
-  session = s;
-  const btnConnexion = document.getElementById('bouton-connexion');
-  const btnAjouter = document.getElementById('bouton-ajouter');
-  if(!session){
-    document.body.classList.remove('admin');
-    btnConnexion.textContent = 'Connexion';
-    btnAjouter.style.display = 'none';
-    return;
-  }
-  const { data: estAdmin } = await supabase.from('admins').select('user_id').eq('user_id', session.user.id).maybeSingle();
-  if(estAdmin){
-    document.body.classList.add('admin');
-    btnConnexion.textContent = 'Déconnexion';
-    btnAjouter.style.display = 'inline-block';
-  } else {
-    document.body.classList.remove('admin');
-    btnConnexion.textContent = 'Déconnexion';
-    btnAjouter.style.display = 'none';
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data ?? []) as ArticleResume[];
+  } catch {
+    return [];
   }
 }
-supabase.auth.onAuthStateChange(() => verifierAdmin());
 
-// ---- Modale produit (ajout / édition) ----
-document.getElementById('bouton-ajouter').addEventListener('click', () => ouvrirModaleProduit(null));
-document.getElementById('annuler-produit').addEventListener('click', () => modaleProduit.classList.remove('ouvert'));
-
-function ouvrirModaleProduit(indicateur){
-  document.getElementById('erreur-produit').textContent = '';
-  const enEdition = !!indicateur;
-  document.getElementById('titre-modale-produit').textContent = enEdition ? 'Modifier ' + indicateur.produit : 'Ajouter un produit';
-  document.getElementById('produit-id').value = enEdition ? indicateur.produit_id : '';
-  document.getElementById('produit-nom').value = enEdition ? indicateur.produit : '';
-  document.getElementById('produit-categorie').value = enEdition ? indicateur.categorie_id : (categories[0]?.id || '');
-  document.getElementById('produit-unite').value = enEdition ? indicateur.unite : 'kg';
-  document.getElementById('produit-prix').value = enEdition ? indicateur.prix_actuel : '';
-  document.getElementById('produit-marche').value = enEdition ? indicateur.marche : '';
-  document.getElementById('produit-source').value = enEdition ? indicateur.source : 'Saisie manuelle';
-  document.getElementById('supprimer-produit').style.display = enEdition ? 'inline-block' : 'none';
-  document.getElementById('produit-nom').disabled = enEdition;
-  modaleProduit.classList.add('ouvert');
-}
-
-document.getElementById('valider-produit').addEventListener('click', async () => {
-  const erreurEl = document.getElementById('erreur-produit');
-  erreurEl.textContent = '';
-  const id = document.getElementById('produit-id').value;
-  const nom = document.getElementById('produit-nom').value.trim();
-  const categorie_id = document.getElementById('produit-categorie').value;
-  const unite = document.getElementById('produit-unite').value.trim() || 'kg';
-  const prix = parseFloat(document.getElementById('produit-prix').value.replace(',','.'));
-  const marche = document.getElementById('produit-marche').value.trim() || 'Moyenne nationale';
-  const source = document.getElementById('produit-source').value.trim() || 'Saisie manuelle';
-
-  if(!nom || isNaN(prix)){ erreurEl.textContent = 'Nom et prix sont obligatoires.'; return; }
-
-  try{
-    if(id){
-      // édition : le prix actuel devient le prix précédent avant mise à jour
-      const { data: ancien } = await supabase.from('indicateurs').select('prix_actuel').eq('produit_id', id).single();
-      await supabase.from('indicateurs').update({
-        prix_actuel: prix,
-        prix_precedent: ancien ? ancien.prix_actuel : prix,
-        marche, source, date_maj: new Date().toISOString()
-      }).eq('produit_id', id);
-      await supabase.from('historique_prix').insert({ produit_id: id, prix, source });
-      await supabase.from('produits').update({ categorie_id, unite }).eq('id', id);
-    } else {
-      const { data: nouveauProduit, error: errProduit } = await supabase.from('produits')
-        .insert({ nom, categorie_id, unite }).select().single();
-      if(errProduit) throw errProduit;
-      await supabase.from('indicateurs').insert({
-        produit_id: nouveauProduit.id, prix_actuel: prix, prix_precedent: prix, marche, source
-      });
-      await supabase.from('historique_prix').insert({ produit_id: nouveauProduit.id, prix, source });
-    }
-    modaleProduit.classList.remove('ouvert');
-    chargerDonnees();
-  } catch(err){
-    erreurEl.textContent = "Erreur : " + err.message;
-  }
-});
-
-document.getElementById('supprimer-produit').addEventListener('click', async () => {
-  const id = document.getElementById('produit-id').value;
-  if(!id) return;
-  if(!confirm('Supprimer définitivement ce produit et son historique ?')) return;
-  await supabase.from('produits').delete().eq('id', id);
-  modaleProduit.classList.remove('ouvert');
-  chargerDonnees();
-});
-
-// ============================================================
-// CHATBOT
-// ============================================================
-const panneauChat = document.getElementById('panneau-chat');
-const corpsChat = document.getElementById('chat-corps');
-const champChat = document.getElementById('champ-chat');
-let historiqueChat = [];
-
-document.getElementById('bulle-chat').addEventListener('click', () => {
-  panneauChat.classList.add('ouvert');
-  champChat.focus();
-});
-document.getElementById('fermer-chat').addEventListener('click', () => panneauChat.classList.remove('ouvert'));
-
-document.querySelectorAll('.suggestion').forEach(btn => {
-  btn.addEventListener('click', () => { champChat.value = btn.textContent; envoyerMessage(); });
-});
-
-function ajouterMessage(texte, type){
-  const div = document.createElement('div');
-  div.className = 'msg ' + type;
-  div.textContent = texte;
-  corpsChat.appendChild(div);
-  corpsChat.scrollTop = corpsChat.scrollHeight;
-  return div;
-}
-
-document.getElementById('envoyer-chat').addEventListener('click', envoyerMessage);
-champChat.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); envoyerMessage(); }
-});
-
-async function envoyerMessage(){
-  const texte = champChat.value.trim();
-  if(!texte) return;
-  champChat.value = '';
-  ajouterMessage(texte, 'moi');
-  historiqueChat.push({ role:'user', content: texte });
-  document.getElementById('envoyer-chat').disabled = true;
-  const attente = ajouterMessage('L\'assistant cherche l\'information…', 'systeme');
-
-  try{
-    const reponse = await fetch(CHAT_EDGE_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: texte, history: historiqueChat.slice(0,-1) })
+async function obtenirDetails(apiKey: string, uuid: string): Promise<ArticleDetail | null> {
+  try {
+    const res = await fetch(`${FREENEWSAPI_BASE}/details?uuid=${uuid}`, {
+      headers: { "x-api-key": apiKey },
     });
-    const data = await reponse.json();
-    attente.remove();
-
-    if(!reponse.ok || data.error){
-      ajouterMessage("Je n'ai pas pu joindre l'assistant. Vérifie que la fonction Supabase 'chat-marche' est bien déployée et configurée.", 'lui');
-      return;
-    }
-    const bulle = ajouterMessage(data.reply || 'Je n\'ai pas trouvé de réponse fiable pour l\'instant.', 'lui');
-    historiqueChat.push({ role:'assistant', content: data.reply || '' });
-
-    if(data.sources && data.sources.length){
-      const wrap = document.createElement('div');
-      wrap.className = 'msg-sources';
-      data.sources.slice(0,4).forEach(s => {
-        const a = document.createElement('a');
-        a.href = s.url; a.target = '_blank'; a.rel = 'noopener';
-        a.textContent = '🔗 ' + (s.title || s.url);
-        wrap.appendChild(a);
-      });
-      bulle.appendChild(wrap);
-    }
-  } catch(err){
-    attente.remove();
-    ajouterMessage("Erreur de connexion à l'assistant.", 'lui');
-  } finally {
-    document.getElementById('envoyer-chat').disabled = false;
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data?.data ?? null) as ArticleDetail | null;
+  } catch {
+    return null;
   }
 }
 
-// ---------- Démarrage ----------
-verifierAdmin();
-chargerDonnees();
-</script>
-</body>
-</html>
+async function rechercherActualites(message: string): Promise<ArticleDetail[]> {
+  const apiKey = Deno.env.get("FREENEWSAPI_KEY");
+  if (!apiKey) return []; // fonctionnalité optionnelle : pas bloquant si absente
+
+  let resumes = await rechercherArticles(apiKey, message, "fr", "SN");
+  if (!resumes.length) resumes = await rechercherArticles(apiKey, message, "fr", null);
+  if (!resumes.length) return [];
+
+  const top = resumes.slice(0, 3);
+  const details = await Promise.all(top.map((a) => obtenirDetails(apiKey, a.uuid)));
+  return details.filter((d): d is ArticleDetail => d !== null);
+}
+
+function formaterActualites(articles: ArticleDetail[]): string {
+  if (!articles.length) {
+    return "Aucune actualité récente trouvée pour cette question.";
+  }
+  return articles
+    .map((a) => {
+      const date = a.published_at
+        ? new Date(a.published_at).toLocaleDateString("fr-FR")
+        : "";
+      const extrait = a.body ? a.body.slice(0, 200).trim() + "…" : "";
+      return `- "${a.title}" (${a.publisher ?? "source inconnue"}${date ? ", " + date : ""}) : ${extrait}`;
+    })
+    .join("\n");
+}
+
+const INSTRUCTION_SYSTEME = `Tu es l'assistant du tableau de bord "Marché Sénégal", qui suit les prix
+et tendances des produits agricoles au Sénégal (mil, oignon, poulet, arachide, etc.).
+Réponds toujours en français, de façon claire et concise (quelques phrases ou une courte liste).
+Termine toujours tes réponses par une phrase complète — ne laisse jamais une explication en suspens.
+
+RÈGLE ABSOLUE : tu ne dois JAMAIS demander à l'utilisateur de te fournir, copier-coller ou taper
+une information (prix, pourcentage, nom de marché...). C'est TOI qui informes l'utilisateur, jamais
+l'inverse. Si tu n'as pas la donnée exacte, ne redemande rien : réponds quand même avec tes
+connaissances générales (ordres de grandeur, tendances saisonnières typiques, facteurs
+d'explication), en précisant simplement qu'il s'agit d'une estimation générale et non d'un chiffre
+du jour.
+
+Tu n'as pas d'accès direct à Internet, mais tu disposes de trois sources fournies ci-dessous :
+1. La liste des produits actuellement suivis dans le tableau de bord — utilise ces chiffres en
+   priorité quand le produit y figure, ils sont à jour.
+2. Une liste d'articles d'actualité récents en lien avec la question posée, quand disponibles —
+   utilise-les pour donner des informations à jour et cite-les naturellement (nom du média, date).
+3. Tes connaissances générales du contexte agricole et économique sénégalais pour compléter.
+Si un produit demandé n'apparaît pas dans la liste suivie et qu'aucune actualité pertinente n'est
+disponible, dis-le en une phrase, PUIS réponds quand même avec une estimation générale utile
+(fourchette de prix typique, tendance saisonnière, causes).
+Ne termine jamais une réponse par une demande d'information à l'utilisateur.`;
+
+function convertirHistorique(history: MessageHistoire[]): GeminiContent[] {
+  return history
+    .filter((m) => m && typeof m.content === "string" && m.content.trim())
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+}
+
+function attendre(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function appelerGeminiAvecRetry(
+  url: string,
+  apiKey: string,
+  payload: unknown,
+  tentativesMax = 4,
+): Promise<{ res: Response; data: any }> {
+  let derniereReponse: { res: Response; data: any } | null = null;
+
+  for (let tentative = 1; tentative <= tentativesMax; tentative++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    derniereReponse = { res, data };
+
+    const codeErreur = data?.error?.code;
+    const reessayable = res.status === 503 || res.status === 429 ||
+      codeErreur === 503 || codeErreur === 429;
+
+    if (res.ok || !reessayable || tentative === tentativesMax) {
+      return derniereReponse;
+    }
+
+    // backoff progressif : 1.5s, 3s, 6s
+    await attendre(tentative * 1500);
+  }
+
+  return derniereReponse!;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Méthode non autorisée." }, 405);
+  }
+
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) {
+    return jsonResponse(
+      { error: "GEMINI_API_KEY n'est pas configurée sur la fonction." },
+      500,
+    );
+  }
+
+  let body: { message?: string; history?: MessageHistoire[] };
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: "Corps de requête JSON invalide." }, 400);
+  }
+
+  const message = (body.message ?? "").toString().trim();
+  if (!message) {
+    return jsonResponse({ error: "Le champ 'message' est requis." }, 400);
+  }
+
+  const historique = convertirHistorique(body.history ?? []);
+  const contents: GeminiContent[] = [
+    ...historique,
+    { role: "user", parts: [{ text: message }] },
+  ];
+
+  const indicateurs = await recupererIndicateurs();
+  const contexteDonnees =
+    `Produits actuellement suivis dans le tableau de bord :\n${formaterIndicateurs(indicateurs)}`;
+
+  const articles = await rechercherActualites(message);
+  const contexteActualites =
+    `Actualités récentes en lien avec la question :\n${formaterActualites(articles)}`;
+
+  const payload = {
+    systemInstruction: {
+      role: "system",
+      parts: [
+        { text: INSTRUCTION_SYSTEME },
+        { text: contexteDonnees },
+        { text: contexteActualites },
+      ],
+    },
+    contents,
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 2048,
+      thinkingConfig: {
+        thinkingBudget: 0,
+      },
+    },
+  };
+
+  try {
+    const { res, data } = await appelerGeminiAvecRetry(GEMINI_URL, apiKey, payload);
+
+    if (!res.ok) {
+      console.error("Erreur Gemini:", data);
+      const messageErreur = data?.error?.code === 503 || res.status === 503
+        ? "Le modèle Gemini est momentanément surchargé. Réessaie dans quelques instants."
+        : data?.error?.message ?? "Erreur lors de l'appel à Gemini.";
+      return jsonResponse({ error: messageErreur }, 502);
+    }
+
+    const candidat = data?.candidates?.[0];
+    const reply: string = (candidat?.content?.parts ?? [])
+      .map((p: GeminiPart) => p.text ?? "")
+      .join("")
+      .trim() || "Je n'ai pas trouvé de réponse fiable pour l'instant.";
+
+    // Sources réelles issues de FreeNewsApi (si des articles ont été trouvés)
+    const sources = articles
+      .filter((a) => a.original_url)
+      .map((a) => ({ title: a.title, url: a.original_url }))
+      .filter(
+        (s: { url?: string }, i: number, arr: { url?: string }[]) =>
+          arr.findIndex((x) => x.url === s.url) === i,
+      );
+
+    return jsonResponse({ reply, sources });
+  } catch (err) {
+    console.error("Erreur chat-marche:", err);
+    return jsonResponse(
+      { error: "Erreur lors de la connexion à Gemini.", detail: String(err) },
+      500,
+    );
+  }
+});
